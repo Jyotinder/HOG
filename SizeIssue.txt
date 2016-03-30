@@ -1,0 +1,88 @@
+./Images\airplane\airplane55.tif                         
+256 253                                                  
+./Images\airplane\airplane59.tif                         
+253 256                                                  
+./Images\airplane\airplane76.tif                         
+256 253                                                  
+./Images\baseballdiamond\baseballdiamond15.tif           
+253 256                                                  
+./Images\baseballdiamond\baseballdiamond35.tif           
+256 252                                                  
+./Images\baseballdiamond\baseballdiamond45.tif           
+256 250                                                  
+./Images\baseballdiamond\baseballdiamond93.tif           
+255 256                                                  
+./Images\beach\beach57.tif                               
+256 252                                                  
+./Images\buildings\buildings96.tif                       
+247 247                                                  
+./Images\golfcourse\golfcourse04.tif                     
+251 256                                                  
+./Images\golfcourse\golfcourse05.tif                     
+251 256                                                  
+./Images\golfcourse\golfcourse06.tif                     
+251 256                                                  
+./Images\golfcourse\golfcourse07.tif                     
+251 256                                                  
+./Images\harbor\harbor10.tif                             
+257 257                                                  
+./Images\harbor\harbor43.tif                             
+256 253                                                  
+./Images\intersection\intersection99.tif                 
+256 249                                                  
+./Images\mobilehomepark\mobilehomepark22.tif             
+256 253                                                  
+./Images\mobilehomepark\mobilehomepark23.tif             
+256 253                                                  
+./Images\mobilehomepark\mobilehomepark24.tif             
+256 253                                                  
+./Images\mobilehomepark\mobilehomepark33.tif             
+253 256                                                  
+./Images\overpass\overpass59.tif                         
+254 256                                                  
+./Images\overpass\overpass62.tif                         
+256 255                                                  
+./Images\overpass\overpass64.tif                         
+247 247                                                  
+./Images\overpass\overpass65.tif                         
+247 247                                                  
+./Images\overpass\overpass66.tif                         
+247 247                                                  
+./Images\overpass\overpass67.tif                         
+247 247                                                  
+./Images\overpass\overpass68.tif                         
+247 247                                                  
+./Images\overpass\overpass69.tif                         
+247 247                                                  
+./Images\overpass\overpass70.tif                         
+247 247                                                  
+./Images\overpass\overpass71.tif                         
+247 247                                                  
+./Images\parkinglot\parkinglot09.tif                     
+256 255                                                  
+./Images\parkinglot\parkinglot20.tif                     
+247 256                                                  
+./Images\river\river30.tif                               
+251 256                                                  
+./Images\river\river83.tif                               
+249 256                                                  
+./Images\runway\runway61.tif                             
+256 254                                                  
+./Images\runway\runway88.tif                             
+254 256                                                  
+./Images\sparseresidential\sparseresidential22.tif       
+256 255                                                  
+./Images\sparseresidential\sparseresidential45.tif       
+256 242                                                  
+./Images\sparseresidential\sparseresidential46.tif       
+256 250                                                  
+./Images\storagetanks\storagetanks60.tif                 
+249 256                                                  
+./Images\storagetanks\storagetanks62.tif                 
+256 254                                                  
+./Images\storagetanks\storagetanks63.tif                 
+256 254                                                  
+./Images\tenniscourt\tenniscourt14.tif                   
+256 247                                                  
+./Images\tenniscourt\tenniscourt36.tif                   
+256 255                                                  
