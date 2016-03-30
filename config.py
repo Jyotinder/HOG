@@ -14,5 +14,4 @@ pixels_per_cell = json.loads(config.get("hog", "pixels_per_cell"))
 cells_per_block = json.loads(config.get("hog", "cells_per_block"))
 visualize = config.getboolean("hog", "visualize")
 normalize = config.getboolean("hog", "normalize")
-clf_option = config.getint("hog", "clf")
 
