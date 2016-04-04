@@ -9,9 +9,11 @@ from sklearn.cross_validation import train_test_split
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix
 from sklearn.externals import joblib
+from sklearn.metrics import accuracy_score
 from sklearn.cross_validation import KFold, cross_val_score
 from sklearn.svm import LinearSVC
 from sklearn import tree
+from sklearn.metrics import classification_report
 import csv
 from itertools import chain
 
@@ -37,8 +39,51 @@ def HOG(image_path):
     fd = hog(im, orientations, pixels_per_cell, cells_per_block, visualize, normalize)
     return fd
 
+def SIFT(image_path):
 
-def feature_extraction(folder_path):
+    """
+        Input:  image_path
+                path to raw image (./image/airplane/airplane1.tif)
+        Output: fd
+                SIFT FV
+        Note:: To configure HOG parameter use config file to set
+                orientations, pixels_per_cell, cells_per_block, visualize, normalize
+                size of fd depend upoin these paprameter
+    """
+    im = cv2.imread(image_path)
+    rows,cols,ch = im.shape
+    if rows!= 256 or cols !=256:
+        print image_path
+        print rows, cols
+        im = cv2.resize(im,(256, 256), interpolation = cv2.INTER_CUBIC)
+        #return []
+    # Create feature extraction and keypoint detector objects
+    fea_det = cv2.FeatureDetector_create("SIFT")
+    des_ext = cv2.DescriptorExtractor_create("SIFT")
+    kpts = fea_det.detect(im)
+    kpts, des = des_ext.compute(im, kpts)
+
+    # Stack all the descriptors vertically in a numpy array
+    descriptors = des
+    descriptors = np.vstack((descriptors, des))
+
+    #
+    test_features = np.zeros((len(image_paths), k), "float32")
+    for i in xrange(len(image_paths)):
+        words, distance = vq(des_list[i][1],voc)
+        for w in words:
+            test_features[i][w] += 1
+
+    # Perform Tf-Idf vectorization
+    nbr_occurences = np.sum( (test_features > 0) * 1, axis = 0)
+    idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
+
+    # Scale the features
+    test_features = stdSlr.transform(test_features)
+
+    return des
+
+def feature_extraction(folder_path,choice):
 
 
     """
@@ -67,7 +112,11 @@ def feature_extraction(folder_path):
         dir_file_path = os.path.join(folder_path, dir)
         files = os.listdir(dir_file_path)
         for file in files:
-            vector = HOG(os.path.join(dir_file_path,file))
+            vector=[]
+            if choice:
+                vector = HOG(os.path.join(dir_file_path,file))
+            else:
+                vector = SIFT(os.path.join(dir_file_path,file))
             #if vector != []:
             data.append(vector)
             y_true.append(count)
@@ -87,7 +136,7 @@ def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues, Cname
     plt.xlabel('Predicted label')
 
 
-def cv_estimate(n_folds=5,X=[],y=[]):
+def cv_estimate(n_folds=5,X=[],y=[],name=[]):
     """
         Input:  X array of FV
                 Y true class of each vector
@@ -100,10 +149,9 @@ def cv_estimate(n_folds=5,X=[],y=[]):
                 I union test set to create confusion matrix.
     """
     cv = KFold(len(X), n_folds=n_folds)
-    clf = linear_model.SGDClassifier()
     #K Fold
 
-    y_test=[]
+
     y_pred=[]
     for train, test in cv:
         X_partial_train=[]
@@ -111,20 +159,16 @@ def cv_estimate(n_folds=5,X=[],y=[]):
         for i in train:
             X_partial_train.append(X[i])
             y_partial_train.append(y[i])
-        clf.partial_fit(X_partial_train, y_partial_train,classes=[i for i in range(0,21)])
+        clf = linear_model.SGDClassifier()
+        clf.fit(X_partial_train, y_partial_train)
         X_test=[]
+        y_test=[]
         for i in test:
             X_test.append(X[i])
             y_test.append(y[i])
-
         y_temp=clf.predict(X_test)
-        for j in y_temp:
-            y_pred.append(j)
-        cm = confusion_matrix(y_test, y_pred)
-        plt.figure()
-        plot_confusion_matrix(cm)
-        plt.show()
-        print cm
+        print  accuracy_score(y_test, y_temp)
+        print(classification_report(y_test, y_temp, target_names=name))
 
 
 def main():
@@ -133,26 +177,66 @@ def main():
     args = vars(parser.parse_args())
     path = args["folderpath"]
 
-
+    name=[]
     data_X=[]
     ture_y=[]
-    if os.path.isfile("feat.hog"):
+    if HOG_E:
+        if os.path.isfile("feat.hog"):
 
-        data_X, ture_y = joblib.load("./feat.hog")
-        #result=np.array(list(csv.reader(open("Hog.csv","rb"),delimiter=','))).astype('float')
+            data_X, ture_y = joblib.load("./feat.hog")
+            name=os.listdir(path)
+            #result=np.array(list(csv.reader(open("Hog.csv","rb"),delimiter=','))).astype('float')
 
-    else:
-        data_X, ture_y, name = feature_extraction(path)
-        joblib.dump((data_X, ture_y),"feat.hog")
-        res = zip(ture_y,data_X)
-        with open(r'Hog.csv', 'wb') as fout:
-            csvout = csv.writer(fout)
-            csvout.writerows(res)
-
-
-    cv_estimate(n_folds=5,X=data_X, y=ture_y)
+        else:
+            data_X, ture_y, name = feature_extraction(path,1)
+            joblib.dump((data_X, ture_y),"feat.hog")
+            res = zip(ture_y,data_X)
+            with open(r'Hog.csv', 'wb') as fout:
+                csvout = csv.writer(fout)
+                csvout.writerows(res)
 
 
+        #cv_estimate(n_folds=5,X=data_X, y=ture_y,name=name)
+        for loop in range(0,3):
+            print "###############################################"
+
+            clf = linear_model.SGDClassifier()
+            X_train, X_test, y_train, y_test = train_test_split(data_X, ture_y, test_size=0.2,random_state=0)
+            clf.fit(X_train, y_train)
+            y_temp=clf.predict(X_test)
+            print  accuracy_score(y_test, y_temp)
+            print(classification_report(y_test, y_temp, target_names=name))
+            print "###############################################"
+
+            print "Confusion S"
+            cm = confusion_matrix(y_test, y_temp)
+            print(cm)
+            print "Confusion E"
+    if SIFT_E:
+        print "SFIT Enabled"
+        if os.path.isfile("feat.SFIT"):
+
+            data_X, ture_y = joblib.load("./feat.SFIT")
+            name=os.listdir(path)
+            #result=np.array(list(csv.reader(open("Hog.csv","rb"),delimiter=','))).astype('float')
+
+        else:
+            data_X, ture_y, name = feature_extraction(path,0)
+            joblib.dump((data_X, ture_y),"feat.SFIT")
+            res = zip(ture_y,data_X)
+            with open(r'Hog.csv', 'wb') as fout:
+                csvout = csv.writer(fout)
+                csvout.writerows(res)
+        #cv_estimate(n_folds=5,X=data_X, y=ture_y,name=name)
+        print "###############################################"
+
+        clf = linear_model.SGDClassifier()
+        X_train, X_test, y_train, y_test = train_test_split(data_X, ture_y, test_size=0.2,random_state=0)
+        clf.fit(X_train, y_train)
+        y_temp=clf.predict(X_test)
+        print  accuracy_score(y_test, y_temp)
+        print(classification_report(y_test, y_temp, target_names=name))
+        print "###############################################"
 
 
 
