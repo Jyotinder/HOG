@@ -16,6 +16,7 @@ from sklearn import tree
 from sklearn.metrics import classification_report
 import csv
 from itertools import chain
+from Sift import sift
 
 def HOG(image_path):
 
@@ -39,49 +40,7 @@ def HOG(image_path):
     fd = hog(im, orientations, pixels_per_cell, cells_per_block, visualize, normalize)
     return fd
 
-def SIFT(image_path):
 
-    """
-        Input:  image_path
-                path to raw image (./image/airplane/airplane1.tif)
-        Output: fd
-                SIFT FV
-        Note:: To configure HOG parameter use config file to set
-                orientations, pixels_per_cell, cells_per_block, visualize, normalize
-                size of fd depend upoin these paprameter
-    """
-    im = cv2.imread(image_path)
-    rows,cols,ch = im.shape
-    if rows!= 256 or cols !=256:
-        print image_path
-        print rows, cols
-        im = cv2.resize(im,(256, 256), interpolation = cv2.INTER_CUBIC)
-        #return []
-    # Create feature extraction and keypoint detector objects
-    fea_det = cv2.FeatureDetector_create("SIFT")
-    des_ext = cv2.DescriptorExtractor_create("SIFT")
-    kpts = fea_det.detect(im)
-    kpts, des = des_ext.compute(im, kpts)
-
-    # Stack all the descriptors vertically in a numpy array
-    descriptors = des
-    descriptors = np.vstack((descriptors, des))
-
-    #
-    test_features = np.zeros((len(image_paths), k), "float32")
-    for i in xrange(len(image_paths)):
-        words, distance = vq(des_list[i][1],voc)
-        for w in words:
-            test_features[i][w] += 1
-
-    # Perform Tf-Idf vectorization
-    nbr_occurences = np.sum( (test_features > 0) * 1, axis = 0)
-    idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
-
-    # Scale the features
-    test_features = stdSlr.transform(test_features)
-
-    return des
 
 def feature_extraction(folder_path,choice):
 
@@ -115,11 +74,11 @@ def feature_extraction(folder_path,choice):
             vector=[]
             if choice:
                 vector = HOG(os.path.join(dir_file_path,file))
-            else:
-                vector = SIFT(os.path.join(dir_file_path,file))
-            #if vector != []:
-            data.append(vector)
-            y_true.append(count)
+            # else:
+            #     vector = SIFT(os.path.join(dir_file_path,file))
+            # #if vector != []:
+            # data.append(vector)
+            # y_true.append(count)
         count = count + 1
     return data, y_true, training_names
 
@@ -213,30 +172,33 @@ def main():
             print(cm)
             print "Confusion E"
     if SIFT_E:
-        print "SFIT Enabled"
-        if os.path.isfile("feat.SFIT"):
-
-            data_X, ture_y = joblib.load("./feat.SFIT")
-            name=os.listdir(path)
-            #result=np.array(list(csv.reader(open("Hog.csv","rb"),delimiter=','))).astype('float')
-
-        else:
-            data_X, ture_y, name = feature_extraction(path,0)
-            joblib.dump((data_X, ture_y),"feat.SFIT")
-            res = zip(ture_y,data_X)
-            with open(r'Hog.csv', 'wb') as fout:
-                csvout = csv.writer(fout)
-                csvout.writerows(res)
-        #cv_estimate(n_folds=5,X=data_X, y=ture_y,name=name)
-        print "###############################################"
-
-        clf = linear_model.SGDClassifier()
-        X_train, X_test, y_train, y_test = train_test_split(data_X, ture_y, test_size=0.2,random_state=0)
-        clf.fit(X_train, y_train)
-        y_temp=clf.predict(X_test)
-        print  accuracy_score(y_test, y_temp)
-        print(classification_report(y_test, y_temp, target_names=name))
-        print "###############################################"
+        # print "SFIT Enabled"
+        # if os.path.isfile("feat.SFIT"):
+        #
+        #     data_X, ture_y = joblib.load("./feat.SFIT")
+        #     name=os.listdir(path)
+        #     #result=np.array(list(csv.reader(open("Hog.csv","rb"),delimiter=','))).astype('float')
+        #
+        # else:
+        #     data_X, ture_y, name = feature_extraction(path,0)
+        #     joblib.dump((data_X, ture_y),"feat.SFIT")
+        #     res = zip(ture_y,data_X)
+        #     with open(r'Hog.csv', 'wb') as fout:
+        #         csvout = csv.writer(fout)
+        #         csvout.writerows(res)
+        # #cv_estimate(n_folds=5,X=data_X, y=ture_y,name=name)
+        # print "###############################################"
+        #
+        # clf = linear_model.SGDClassifier()
+        # X_train, X_test, y_train, y_test = train_test_split(data_X, ture_y, test_size=0.2,random_state=0)
+        #
+        # clf.fit(X_train, y_train)
+        # y_temp=clf.predict(X_test)
+        # print  accuracy_score(y_test, y_temp)
+        # print(classification_report(y_test, y_temp, target_names=name))
+        # print "###############################################"
+        print "To DO"
+        sift(path)
 
 
 
