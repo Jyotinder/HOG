@@ -8,6 +8,8 @@ from sklearn.svm import LinearSVC
 from sklearn.externals import joblib
 from scipy.cluster.vq import *
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 
 
 def SIFT(image_path):
@@ -73,7 +75,7 @@ def sift(train_path):
     # List where all the descriptors are stored
     des_list = []
     descriptors = np.array([], dtype=np.float).reshape(0,128)
-    for image_path in image_paths:
+    for image_path in X_train:
         des=SIFT(image_path)
         if des !=[] and des is not None :
             descriptors=np.vstack([descriptors,des])
@@ -81,31 +83,17 @@ def sift(train_path):
         else:
             print "IMP"+image_path
 
-    # #X_train, X_test, y_train, y_test = train_test_split(data_X, ture_y, test_size=0.2,random_state=0)
-    # # Stack all the descriptors vertically in a numpy array
-    # descriptors = des_list[0][1]
-    # for image_path, descriptor in des_list[1:]:
-    #    if  descriptor is not None:
-    #         _,col=descriptor.shape
-    #         if col == 128:
-    #             descriptors = np.vstack((descriptors, descriptor))
-    #    else:
-    #        print image_path
-
-    # Perform k-means clustering
     k = 100
+    print "K mean"
     voc, variance = kmeans(descriptors, k, 1)
-
+    print "END K mean"
     # Calculate the histogram of features
-    im_features = np.zeros((len(image_paths), k), "float32")
+    im_features = np.zeros((len(X_train), k), "float32")
     for i in xrange(len(des_list)):
         words, distance = vq(des_list[i][1],voc)
         for w in words:
             im_features[i][w] += 1
 
-    # Perform Tf-Idf vectorization
-    nbr_occurences = np.sum( (im_features > 0) * 1, axis = 0)
-    idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
 
     # Scaling the words
     stdSlr = StandardScaler().fit(im_features)
@@ -113,10 +101,46 @@ def sift(train_path):
 
     # Train the Linear SVM
     clf = LinearSVC()
-    clf.fit(im_features, np.array(image_classes))
-
+    clf.fit(im_features, y_train)
     # Save the SVM
-    joblib.dump((clf, training_names, stdSlr, k, voc), "bofj.pkl", compress=3)
+    print "SAV SVM"
+    joblib.dump((clf, training_names, stdSlr, k, voc), "bof_new.pkl", compress=3)
+
+    #####################TEST######################
+    # List where all the descriptors are stored
+    des_list = []
+    descriptors = np.array([], dtype=np.float).reshape(0,128)
+    for image_path in X_test:
+        des=SIFT(image_path)
+        if des !=[] and des is not None :
+            print "Add into Stack"
+            descriptors=np.vstack([descriptors,des])
+            des_list.append((image_path,des))
+            print "Added"
+        else:
+            print "IMP"+image_path
+
+    # Calculate the histogram of features
+    im_features = np.zeros((len(X_test), k), "float32")
+    for i in xrange(len(des_list)):
+        words, distance = vq(des_list[i][1],voc)
+        for w in words:
+            im_features[i][w] += 1
+
+    # Scaling the words
+    stdSlr = StandardScaler().fit(im_features)
+    im_features = stdSlr.transform(im_features)
+
+    predictions =  clf.predict(im_features)
+    print(classification_report(y_test, predictions, target_names=training_names))
+    #print predictions
+
+    print "Confusion S"
+    cm = confusion_matrix(y_test, predictions)
+    print(cm)
+    print "Confusion E"
+
+
 
 def test(path_svm,path_image):
     clf, classes_names, stdSlr, k, voc = joblib.load(path_svm)
@@ -146,7 +170,7 @@ def test(path_svm,path_image):
 
 if __name__ == '__main__':
     sift("./Images")
-    if os.path.isfile("bofj.pkl"):
-        test("bofj.pkl","Images/mobilehomepark/mobilehomepark05.tif")
-    else:
-        sift("./Images")
+    # if os.path.isfile("bofj.pkl"):
+    #     test("bofj.pkl","Images/mobilehomepark/mobilehomepark05.tif")
+    # else:
+    #     sift("./Images")
