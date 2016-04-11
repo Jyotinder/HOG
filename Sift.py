@@ -10,7 +10,7 @@ from scipy.cluster.vq import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
-
+from sklearn import preprocessing
 
 def SIFT(image_path):
 
@@ -94,17 +94,21 @@ def sift(train_path):
         for w in words:
             im_features[i][w] += 1
 
+    # Perform Tf-Idf vectorization
+    nbr_occurences = np.sum( (im_features > 0) * 1, axis = 0)
+    idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
 
-    # Scaling the words
-    stdSlr = StandardScaler().fit(im_features)
-    im_features = stdSlr.transform(im_features)
+    # Perform L2 normalization
+    im_features = im_features*idf
+    im_features = preprocessing.normalize(im_features, norm='l2')
+
 
     # Train the Linear SVM
     clf = LinearSVC()
     clf.fit(im_features, y_train)
     # Save the SVM
     print "SAV SVM"
-    joblib.dump((clf, training_names, stdSlr, k, voc), "bof_new.pkl", compress=3)
+    joblib.dump((clf, training_names, k, voc), "bof_new.pkl", compress=3)
 
     #####################TEST######################
     # List where all the descriptors are stored
@@ -127,9 +131,9 @@ def sift(train_path):
         for w in words:
             im_features[i][w] += 1
 
-    # Scaling the words
-    stdSlr = StandardScaler().fit(im_features)
-    im_features = stdSlr.transform(im_features)
+    # Perform Tf-Idf vectorization and L2 normalization
+    im_features = im_features*idf
+    im_features = preprocessing.normalize(im_features, norm='l2')
 
     predictions =  clf.predict(im_features)
     print(classification_report(y_test, predictions, target_names=training_names))
