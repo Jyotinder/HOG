@@ -38,6 +38,7 @@ def HOG(image_path):
                 orientations, pixels_per_cell, cells_per_block, visualize, normalize
                 size of fd depend upoin these paprameter
     """
+    print image_path
     im = cv2.imread(image_path)
     rows,cols,ch = im.shape
     if rows!= 256 or cols !=256:
@@ -51,8 +52,7 @@ def HOG(image_path):
     for image in split:
         fd.append(  hog(image, orientations, pixels_per_cell, cells_per_block, visualize, normalize))
     return fd
-
-def SIFT(image_path):
+def SIFT_old(image_path):
 
     """
         Input:  image_path
@@ -82,12 +82,96 @@ def SIFT(image_path):
 
     return des
 
+def SIFT(image_path):
+
+    """
+        Input:  image_path
+                path to raw image (./image/airplane/airplane1.tif)
+        Output: fd
+                SIFT FV
+        Note:: To configure HOG parameter use config file to set
+                orientations, pixels_per_cell, cells_per_block, visualize, normalize
+                size of fd depend upoin these paprameter
+    """
+    print "##################"
+    print "SIFT Enter"+image_path
+    im = cv2.imread(image_path)
+    rows,cols,ch = im.shape
+    if rows!= 256 or cols !=256:
+        print image_path
+        print rows, cols
+        im = cv2.resize(im,(256, 256), interpolation = cv2.INTER_CUBIC)
+        return []
+    # Create feature extraction and keypoint detector objects
+    fea_det = cv2.FeatureDetector_create("SIFT")
+    des_ext = cv2.DescriptorExtractor_create("SIFT")
+    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    split= blockshaped(im, 256/4, 256/4)
+    descriptors = np.array([], dtype=np.float).reshape(0,128)
+    #fd=[]
+    for image in split:
+        kpts = fea_det.detect(image)
+        kpts, des = des_ext.compute(image, kpts)
+        if des !=[] and des is not None :
+            descriptors=np.vstack([descriptors,des])
+            #fd.append(des)
+    return descriptors
+
 def imlist(path):
     """
     The function imlist returns all the names of the files in
     the directory path supplied as argument to the function.
     """
     return [os.path.join(path, f) for f in os.listdir(path)]
+
+def find_nn(point, neighborhood):
+    """
+    Finds the nearest neighborhood of a vector.
+
+    Args:
+        point (float array): The initial point.
+        neighborhood (numpy float matrix): The points that are around the initial point.
+
+    Returns:
+        float array: The point that is the nearest neighbor of the initial point.
+        integer: Index of the nearest neighbor inside the neighborhood list
+    """
+    min_dist = float('inf')
+    nn = neighborhood[0]
+    nn_idx = 0
+    for i in range(len(neighborhood)):
+        neighbor = neighborhood[i]
+        dist = cv2.norm(point - neighbor)
+        if dist < min_dist:
+            min_dist = dist
+            nn = neighbor
+            nn_idx = i
+
+    return nn, nn_idx
+
+def vlad(descriptors, centers):
+    """
+    Calculate the Vector of Locally Aggregated Descriptors (VLAD) which is a global descriptor from a group of
+    descriptors and centers that are codewords of a codebook, obtained for example with K-Means.
+
+    Args:
+        descriptors (numpy float matrix): The local descriptors.
+        centers (numpy float matrix): The centers are points representatives of the classes.
+
+    Returns:
+        numpy float array: The VLAD vector.
+    """
+    dimensions = len(descriptors[0])
+    vlad_vector = np.zeros((len(centers), dimensions), dtype=np.float)
+    for descriptor in descriptors:
+        nearest_center, center_idx = find_nn(descriptor, centers)
+        for i in range(dimensions):
+            vlad_vector[center_idx][i] += (descriptor[i] - nearest_center[i])
+    # L2 Normalization
+    vlad_vector = cv2.normalize(vlad_vector)
+    vlad_vector = vlad_vector.flatten()
+    return vlad_vector
+
 
 def sift(train_path):
     training_names = os.listdir(train_path)
@@ -110,67 +194,52 @@ def sift(train_path):
     # List where all the descriptors are stored
     des_list = []
     descriptors = np.array([], dtype=np.float).reshape(0,128)
-    for image_path in X_train:
-        des=SIFT(image_path)
+    for i,image_path in enumerate(X_train):
+        des=SIFT_old(image_path)
         if des !=[] and des is not None :
-            descriptors=np.vstack((descriptors,des))
-            des_list.append((image_path,des))
+            descriptors=np.vstack([descriptors,des])
+            des_list.append((image_path,y_train[i],des))
         else:
-            print "IMP"+image_path
+            del X_train[i]
+            del y_train[i]
 
-    k = 100
+    k = 64
     print "K mean"
     voc, variance = kmeans(descriptors, k, 1)
     print "END K mean"
-    # Calculate the histogram of features
-    im_features = np.zeros((len(X_train), k), "float32")
+    x=[]
+    print "VLAS Start"
     for i in xrange(len(des_list)):
-        words, distance = vq(des_list[i][1],voc)
-        for w in words:
-            im_features[i][w] += 1
-    # Perform Tf-Idf vectorization
-    nbr_occurences = np.sum( (im_features > 0) * 1, axis = 0)
-    idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
-    # Perform L2 normalization
-    im_features = im_features*idf
-    im_features = preprocessing.normalize(im_features, norm='l2')
-    # Train the Linear SVM
+        x.append(vlad(des_list[i][2],voc))
+    print "VLAS End"
+
     clf = LinearSVC()
-    clf.fit(im_features, y_train)
-    # Save the SVM
-    print "SAV SVM"
-    joblib.dump((clf, training_names, k, voc), "bof_new.pkl", compress=3)
+    print "SVM Start"
+    y_train=[]
+    for i in des_list:
+        y_train.append(i[1])
+    print len(x),"  ",len(y_train)
+    clf.fit(x, y_train)
+    print "SVM End"
     #####################TEST######################
     # List where all the descriptors are stored
-    des_list = []
-    descriptors = np.array([], dtype=np.float).reshape(0,128)
-    for image_path in X_test:
-        des=SIFT(image_path)
+    x_test=[]
+    ytest=[]
+    for i,image_path in enumerate(X_test):
+        des=SIFT_old(image_path)
         if des !=[] and des is not None :
-            print "Add into Stack"
-            descriptors=np.vstack([descriptors,des])
-            des_list.append((image_path,des))
-            print "Added"
+            x_test.append(vlad(des,voc))
+            ytest.append(y_test[i])
         else:
-            print "IMP"+image_path
+            del X_test[i]
+            del y_test[i]
 
-    # Calculate the histogram of features
-    im_features = np.zeros((len(X_test), k), "float32")
-    for i in xrange(len(des_list)):
-        words, distance = vq(des_list[i][1],voc)
-        for w in words:
-            im_features[i][w] += 1
-
-    # Perform Tf-Idf vectorization and L2 normalization
-    im_features = im_features*idf
-    im_features = preprocessing.normalize(im_features, norm='l2')
-
-    predictions =  clf.predict(im_features)
-    print(classification_report(y_test, predictions, target_names=training_names))
+    predictions =  clf.predict(x_test)
+    print(classification_report(ytest, predictions, target_names=training_names))
     #print predictions
 
     print "Confusion S"
-    cm = confusion_matrix(y_test, predictions)
+    cm = confusion_matrix(ytest, predictions)
     print(cm)
     print "Confusion E"
 
@@ -200,15 +269,19 @@ def hog_fuc(train_path):
         for image_path in X_train:
             des=HOG(image_path)
             if des !=[] and des is not None :
-                descriptors=np.vstack((descriptors,des))
+                descriptors=np.vstack((descriptors,des)) #Global Descriptor
                 des_list.append((image_path,des))
             else:
                 print "IMP"+image_path
 
-        k = 100
+        k = 64
         print "K mean"
         voc, variance = kmeans(descriptors, k, 1)
         print "END K mean"
+        for i in xrange(len(des_list)):
+            vlad_vector = vlad(des_list[i][1], voc)
+
+
         # Calculate the histogram of features
         im_features = np.zeros((len(X_train), k), "float32")
         for i in xrange(len(des_list)):
@@ -230,6 +303,8 @@ def hog_fuc(train_path):
     #####################TEST######################
     # List where all the descriptors are stored
     clf, training_names, k, voc,idf = joblib.load("./bof_new.pkl")
+    for i in xrange(len(des_list)):
+        vlad_vector = vlad(des_list[i][1], voc)
     des_list = []
     descriptors = np.array([], dtype=np.float).reshape(0,576)
     for image_path in X_test:
@@ -264,37 +339,6 @@ def hog_fuc(train_path):
 
 
 
-
-def test(path_svm,path_image):
-    clf, classes_names, stdSlr, k, voc = joblib.load(path_svm)
-    # Create feature extraction and keypoint detector objects
-    fea_det = cv2.FeatureDetector_create("SIFT")
-    des_ext = cv2.DescriptorExtractor_create("SIFT")
-    # List where all the descriptors are stored
-    descriptors = np.array([], dtype=np.float).reshape(0,128)
-    des=SIFT(path_image)
-    if des !=[] and des is not None :
-        descriptors=np.vstack([descriptors,des])
-    else:
-        print "IMP"+path_image
-
-    test_features = np.zeros((1, k), "float32")
-    words, distance = vq(descriptors,voc)
-    for w in words:
-        test_features[0][w] += 1
-
-    # Scale the features
-    test_features = stdSlr.transform(test_features)
-
-    predictions =  clf.predict(test_features)
-    print predictions
-
-
-
 if __name__ == '__main__':
-    hog_fuc("./Images")
-    #sift("./Images")
-    # if os.path.isfile("bofj.pkl"):
-    #     test("bofj.pkl","Images/mobilehomepark/mobilehomepark05.tif")
-    # else:
-    #     sift("./Images")
+    #hog_fuc("./Images")
+    sift("./Images")
