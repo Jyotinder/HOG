@@ -13,6 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn import preprocessing
+import matplotlib.pyplot as plt
 
 def blockshaped(arr, nrows, ncols):
     """
@@ -203,7 +204,7 @@ def sift(train_path):
             del X_train[i]
             del y_train[i]
 
-    k = 64
+    k = 512
     print "K mean"
     voc, variance = kmeans(descriptors, k, 1)
     print "END K mean"
@@ -240,102 +241,21 @@ def sift(train_path):
 
     print "Confusion S"
     cm = confusion_matrix(ytest, predictions)
-    print(cm)
+    plt.figure()
+    plot_confusion_matrix(cm)
+    plt.show()
     print "Confusion E"
 
-
-def hog_fuc(train_path):
-    training_names = os.listdir(train_path)
-    # Get all the path to the images and save them in a list
-    # image_paths and the corresponding label in image_paths
-    image_paths = []
-    image_classes = []
-    class_id = 0
-    for training_name in training_names:#Got three directory having images
-        dir = os.path.join(train_path, training_name)
-        class_path = imlist(dir)
-        image_paths+=class_path
-        image_classes+=[class_id]*len(class_path)
-        class_id+=1
-
-    ################################################
-    #############SPLIT DATA#########################
-    X_train, X_test, y_train, y_test = train_test_split(image_paths, image_classes, test_size=0.2,random_state=0)
-    ################################################
-    # List where all the descriptors are stored
-    if not os.path.isfile("./bof_new.pkl"):
-        des_list = []
-        descriptors = np.array([], dtype=np.float).reshape(0,576)
-        for image_path in X_train:
-            des=HOG(image_path)
-            if des !=[] and des is not None :
-                descriptors=np.vstack((descriptors,des)) #Global Descriptor
-                des_list.append((image_path,des))
-            else:
-                print "IMP"+image_path
-
-        k = 64
-        print "K mean"
-        voc, variance = kmeans(descriptors, k, 1)
-        print "END K mean"
-        for i in xrange(len(des_list)):
-            vlad_vector = vlad(des_list[i][1], voc)
-
-
-        # Calculate the histogram of features
-        im_features = np.zeros((len(X_train), k), "float32")
-        for i in xrange(len(des_list)):
-            words, distance = vq(des_list[i][1],voc)
-            for w in words:
-                im_features[i][w] += 1
-        # Perform Tf-Idf vectorization
-        nbr_occurences = np.sum( (im_features > 0) * 1, axis = 0)
-        idf = np.array(np.log((1.0*len(image_paths)+1) / (1.0*nbr_occurences + 1)), 'float32')
-        # Perform L2 normalization
-        im_features = im_features*idf
-        im_features = preprocessing.normalize(im_features, norm='l2')
-        # Train the Linear SVM
-        clf = LinearSVC()
-        clf.fit(im_features, y_train)
-        # Save the SVM
-        print "SAV SVM"
-        joblib.dump((clf, training_names, k, voc,idf), "bof_new.pkl", compress=3)
-    #####################TEST######################
-    # List where all the descriptors are stored
-    clf, training_names, k, voc,idf = joblib.load("./bof_new.pkl")
-    for i in xrange(len(des_list)):
-        vlad_vector = vlad(des_list[i][1], voc)
-    des_list = []
-    descriptors = np.array([], dtype=np.float).reshape(0,576)
-    for image_path in X_test:
-        des=HOG(image_path)
-        if des !=[] and des is not None :
-            print "Add into Stack"
-            descriptors=np.vstack([descriptors,des])
-            des_list.append((image_path,des))
-            print "Added"
-        else:
-            print "IMP"+image_path
-
-    # Calculate the histogram of features
-    im_features = np.zeros((len(X_test), k), "float32")
-    for i in xrange(len(des_list)):
-        words, distance = vq(des_list[i][1],voc)
-        for w in words:
-            im_features[i][w] += 1
-
-    # Perform Tf-Idf vectorization and L2 normalization
-    im_features = im_features*idf
-    im_features = preprocessing.normalize(im_features, norm='l2')
-
-    predictions =  clf.predict(im_features)
-    print(classification_report(y_test, predictions, target_names=training_names))
-    #print predictions
-
-    print "Confusion S"
-    cm = confusion_matrix(y_test, predictions)
-    print(cm)
-    print "Confusion E"
+def plot_confusion_matrix(cm, title='Confusion matrix', cmap=plt.cm.Blues, Cname=""):
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title(title)
+    plt.colorbar()
+    tick_marks = np.arange(len(Cname))
+    plt.xticks(tick_marks, Cname, rotation=45)
+    plt.yticks(tick_marks, Cname)
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
 
 
 
