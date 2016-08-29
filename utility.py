@@ -8,6 +8,7 @@ from scipy.cluster.vq import *
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
+from Vlad import vladFun
 from Sift import *
 
 def imlist(path):
@@ -41,26 +42,30 @@ def direcrtoryProcessing(train_path):
     for i,image_path in enumerate(X_train):
         des=sift(image_path)
         if des !=[] and des is not None :
-            vlad=shiftToVlad(des)
-            if vlad != None:
-                des_list.append((image_path,y_train[i],vlad))
-            else:
+            des_list.append((image_path,y_train[i],des))
+        else:
                 del X_train[i]
                 del y_train[i]
-        else:
-            del X_train[i]
-            del y_train[i]
-    x=[]
-    for i in xrange(len(des_list)):
-        x.append(des_list[i][2])
-
+    des_list = sorted(des_list, key=lambda tup: tup[1])
+    x_trainingList=[]
+    for imageClass in range(0,class_id):
+        temp=[x for x in des_list if x[1]==imageClass]
+        descriptors = np.array([], dtype=np.float).reshape(0,128)
+        for x in temp:
+            descriptors=np.vstack([descriptors,x[2]])
+        k = 128
+        print("Kmean for class "+ str(imageClass))
+        voc, variance = kmeans(descriptors, k, 1)
+        print("Vlad for training images for class"+ str(imageClass))
+        for i in xrange(len(temp)):
+            x_trainingList.append(vladFun(temp[i][2],voc))
     clf = LinearSVC()
     print "SVM Start"
     y_train=[]
     for i in des_list:
         y_train.append(i[1])
-    print len(x),"  ",len(y_train)
-    clf.fit(x, y_train)
+    print len(x_trainingList),"  ",len(y_train)
+    clf.fit(x_trainingList, y_train)
     print "SVM End"
     #####################TEST######################
     #List where all the descriptors are stored

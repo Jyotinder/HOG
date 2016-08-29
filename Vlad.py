@@ -26,7 +26,7 @@ def find_nn(point, neighborhood):
 
     return nn, nn_idx
 
-def vlad(descriptors, centers):
+def vladFun(descriptors, centers):
     """
     Calculate the Vector of Locally Aggregated Descriptors (VLAD) which is a global descriptor from a group of
     descriptors and centers that are codewords of a codebook, obtained for example with K-Means.
