@@ -23,7 +23,7 @@ def imlist(path):
 def testSet(setX,setY,class_id):
     des_list = []
     for i,image_path in enumerate(setX):
-        des=sift(image_path)
+        des=siftPyramid(image_path)
         if des !=[] and des is not None :
             des_list.append((image_path,setY[i],des))
         else:
@@ -52,7 +52,7 @@ def testSet(setX,setY,class_id):
 def trainTestSet(setX,setY,class_id):
     des_list = []
     for i,image_path in enumerate(setX):
-        des=sift(image_path)
+        des=siftPyramid(image_path)
         if des !=[] and des is not None :
             des_list.append((image_path,setY[i],des))
         else:
@@ -65,7 +65,7 @@ def trainTestSet(setX,setY,class_id):
         descriptors = np.array([], dtype=np.float).reshape(0,128)
         for x in temp:
             descriptors=np.vstack([descriptors,x[2]])
-        k = 90
+        k = 128
         print("Kmean for class "+ str(imageClass))
         voc, variance = kmeans(descriptors, k, 1)
         filename = './Kmean/'+str(imageClass)+".pkl"
