@@ -1,7 +1,8 @@
 .idea/
 HOG.zip 
+Kmean/
 Images/ 
-Sift.pyc
+*.pyc
 UC_Mersed_HOG.data
 bakup/ 
 shell.sh
