@@ -8,7 +8,7 @@ import numpy as np
 import os
 from sklearn.svm import LinearSVC
 from sklearn.externals import joblib
-from scipy.cluster.vq import *
+from sklearn.cluster import MiniBatchKMeans, KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
@@ -195,24 +195,24 @@ def sift(train_path):
     # List where all the descriptors are stored
     des_list = []
     descriptors = np.array([], dtype=np.float).reshape(0,128)
+    k=64
+    x=[]
     for i,image_path in enumerate(X_train):
         des=SIFT_old(image_path)
         if des !=[] and des is not None :
             descriptors=np.vstack([descriptors,des])
+            k_means = KMeans(init='k-means++', n_clusters=k, n_init=5)
+            k_means.fit(descriptors)
+            voc = k_means.cluster_centers_
+            vladVector =vlad(descriptors,voc)
+            print vladVector.size
+            if vladVector.size !=k*128:
+                print "Error with 128"
+            x.append(vladVector)
             des_list.append((image_path,y_train[i],des))
         else:
             del X_train[i]
             del y_train[i]
-
-    k = 512
-    print "K mean"
-    voc, variance = kmeans(descriptors, k, 1)
-    print "END K mean"
-    x=[]
-    print "VLAS Start"
-    for i in xrange(len(des_list)):
-        x.append(vlad(des_list[i][2],voc))
-    print "VLAS End"
 
     clf = LinearSVC()
     print "SVM Start"
@@ -229,7 +229,14 @@ def sift(train_path):
     for i,image_path in enumerate(X_test):
         des=SIFT_old(image_path)
         if des !=[] and des is not None :
-            x_test.append(vlad(des,voc))
+            k_means = KMeans(init='k-means++', n_clusters=k, n_init=5)
+            k_means.fit(descriptors)
+            voc = k_means.cluster_centers_
+            vladVector =vlad(descriptors,voc)
+            print vladVector.size
+            if vladVector.size !=k*128:
+                print "Error with 128"
+            x_test.append(vladVector)
             ytest.append(y_test[i])
         else:
             del X_test[i]
