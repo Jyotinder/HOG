@@ -4,7 +4,8 @@ import os
 import numpy as np
 
 from sklearn.svm import LinearSVC
-from scipy.cluster.vq import *
+#from scipy.cluster.vq import *
+from sklearn.cluster import MiniBatchKMeans, KMeans
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
@@ -67,7 +68,13 @@ def trainTestSet(setX,setY,class_id):
             descriptors=np.vstack([descriptors,x[2]])
         k = 128
         print("Kmean for class "+ str(imageClass))
-        voc, variance = kmeans(descriptors, k, 1)
+        #voc, variance = kmeans(descriptors, k, 1)
+        k_means = KMeans(init='k-means++', n_clusters=k, n_init=10)
+        k_means.fit(descriptors)
+        k_means_labels = k_means.labels_
+        voc = k_means.cluster_centers_
+        k_means_labels_unique = np.unique(k_means_labels)
+
         filename = './Kmean/'+str(imageClass)+".pkl"
         joblib.dump(voc, filename, compress=9)
         print("Vlad for training images for class"+ str(imageClass))

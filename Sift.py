@@ -80,10 +80,11 @@ def sift(image_path):
     return des
 
 def shiftToVlad(des):
-    k=32
+    k=128
     voc, variance = kmeans(des, k, 1)
-    vladVector= vlad(des,voc)
+    vladVector= vladFun(des,voc)
     if k*128!=vladVector.size:
+        print vladVector.size
         return None
     return vladVector
 
