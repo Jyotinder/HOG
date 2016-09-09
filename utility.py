@@ -64,7 +64,7 @@ def direcrtoryProcessing(train_path):
 
     ################################################
     #############SPLIT DATA#########################
-    X_train, X_test, y_train, y_test = train_test_split(image_paths, image_classes, test_size=0.4,random_state=0)
+    X_train, X_test, y_train, y_test = train_test_split(image_paths, image_classes, test_size=0.2,random_state=0)
     ################################################
     # List where all the descriptors are stored
     x_trainingList,y_train=trainTestSet(X_train,y_train)
