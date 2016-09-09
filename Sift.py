@@ -3,6 +3,7 @@ import cv2
 import os
 from Vlad import *
 from scipy.cluster.vq import *
+from sklearn.decomposition import PCA
 
 def blockshaped(arr, nrows, ncols):
     """
@@ -78,6 +79,18 @@ def sift(image_path):
     print "##################"
     print "SIFT End"
     return des
+
+def PCA_image(image_path):
+    im = cv2.imread(image_path)
+    gray_image = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+    k=128
+    print "PCA Enter"+image_path
+    pca = PCA(n_components=k)
+    # X is the matrix transposed (n samples on the rows, m features on the columns)
+    pca.fit(gray_image)
+    print "PCA End"
+
+    return pca.transform(gray_image)
 
 def shiftToVlad(des):
     k=128
