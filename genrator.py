@@ -15,7 +15,7 @@ import itertools
 import random
 from sklearn.cross_validation import KFold
 
-clf = SGDClassifier()
+
 
 def imlist(path):
     """
@@ -23,49 +23,6 @@ def imlist(path):
     the directory path supplied as argument to the function.
     """
     return [os.path.join(path, f) for f in os.listdir(path)]
-
-
-def cv_estimate(X=[],y=[]):
-   """
-       Input:  X array of FV
-               Y true class of each vector
-               n_folds number of fold you want to create
-       Output: Generate Confusion matrix
-
-       Note:: This function use KFold which on each n_folds iteration
-               gives train set and test set on the X data set which are random and mutually
-               exclusive. Each train set work as a min batch(incremental set) on which SGD is trained
-               I union test set to create confusion matrix.
-   """
-   n_folds=5
-   cv = KFold(len(X), n_folds=n_folds)
-
-   #K Fold
-
-   y_test=[]
-   y_pred=[]
-   for train, test in cv:
-       X_partial_train=[]
-       y_partial_train=[]
-       for i in train:
-           X_partial_train.append(X[i])
-           y_partial_train.append(y[i])
-       clf.partial_fit(X_partial_train, y_partial_train,classes=np.unique(y))
-       X_test=[]
-       for i in test:
-           X_test.append(X[i])
-           y_test.append(y[i])
-
-       y_temp=clf.predict(X_test)
-       for j in y_temp:
-           y_pred.append(j)
-       cm = confusion_matrix(y_test, y_pred)
-       plt.figure()
-       plot_confusion_matrix(cm)
-       plt.show()
-       print cm
-
-
 
 def trainTestSet(setX,setY):
     x_trainingList=[]
@@ -86,10 +43,24 @@ def trainTestSet(setX,setY):
                 del setX[i]
                 del setY[i]
     return x_trainingList,y_train
+def getrows(row,X_train,Y_train):
+    X=[]
+    Y=[]
+    for i in row:
+        if i<len(X_train):
+            X.append(X_train[i])
+            Y.append(Y_train[i])
+    return X,Y
 
-def batches(l, n):
-    for i in xrange(0, len(l), n):
-        yield l[i:i+n]
+def iter_minibatches(chunksize,X_train,Y_train):
+    # Provide chunks one by one
+    chunkstartmarker = 0
+    print len(X_train)
+    while chunkstartmarker < len(X_train):
+        chunkrows = range(chunkstartmarker,chunkstartmarker+chunksize)
+        X_chunk, y_chunk = getrows(chunkrows,X_train,Y_train)
+        yield X_chunk, y_chunk
+        chunkstartmarker += chunksize
 
 def direcrtoryProcessing(train_path):
     training_names = os.listdir(train_path)
@@ -104,8 +75,15 @@ def direcrtoryProcessing(train_path):
         image_paths+=class_path
         image_classes+=[class_id]*len(class_path)
         class_id+=1
-    x_test,ytest=trainTestSet(image_paths,image_classes)
-    cv_estimate(x_test,ytest)
+    X,Y=trainTestSet(image_paths,image_classes)
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.2,random_state=0)
+    clf = SGDClassifier()
+    batcherator = iter_minibatches(4,X_train,y_train)
+    for X_chunk, y_chunk in batcherator:
+        clf.partial_fit(X_chunk, y_chunk,classes=np.unique(Y))
+        y_predicted = clf.predict(X_test)
+        print(classification_report(y_test,y_predicted ))
+
 
 
 
