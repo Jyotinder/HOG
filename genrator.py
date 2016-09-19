@@ -10,6 +10,8 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 from sklearn.linear_model import SGDClassifier
+from xlrd.compdoc import x_dump_line
+
 from Sift import *
 import itertools
 import random
@@ -24,22 +26,25 @@ def imlist(path):
     """
     return [os.path.join(path, f) for f in os.listdir(path)]
 
+def vocVlad(des):
+    k = 32
+    k_means = KMeans(init='k-means++', n_clusters=k, n_init=1)
+    k_means.fit(des)
+    voc = k_means.cluster_centers_
+    return voc
+
 def trainTestSet(setX,setY):
     x_trainingList=[]
     y_train=[]
+    descriptors = np.array([], dtype=np.float).reshape(0,128)
+    des_list = []
     for i,image_path in enumerate(setX):
         # reduce the column of the image to 128 doesn't change the number of rows
-        des=siftPyramid(image_path)
+        des=sift(image_path)
         try:
             if des !=[] and des is not None:
-                k = 128
-                k_means = KMeans(init='k-means++', n_clusters=k, n_init=10)
-                k_means.fit(des)
-                voc = k_means.cluster_centers_
-                #reduce the size of the row to the value of k
-                vlad= vladFun(des,voc)
-                x_trainingList.append(vlad)
-                y_train.append(setY[i])
+                descriptors=np.vstack([descriptors,des])
+                des_list.append((image_path,setY[i],des))
             else:
                     del setX[i]
                     del setY[i]
@@ -47,6 +52,13 @@ def trainTestSet(setX,setY):
             print "Exception for "+ image_path
             del setX[i]
             del setY[i]
+    print "Going for VOC"
+    voc = vocVlad(descriptors)
+    print "END for VOC"
+    for i in xrange(len(des_list)):
+        print "calculating vlad for"+ des_list[i][0]
+        x_trainingList.append(vladFun(des_list[i][2],voc))
+        y_train.append(des_list[i][1])
     return x_trainingList,y_train
 def getrows(row,X_train,Y_train):
     X=[]
